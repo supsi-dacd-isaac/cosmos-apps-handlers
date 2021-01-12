@@ -12,9 +12,7 @@ class InfluxDBInterface:
 
     def __init__(self, cfg, logger):
 
-        # --------------------------------------------------------------------------- #
-        # InfluxDB connection
-        # --------------------------------------------------------------------------- #
+        self.cfg = cfg
         logger.info('Connection to InfluxDb server on socket [%s:%s]' % (cfg['influxDB']['host'],
                                                                          cfg['influxDB']['port']))
         try:
@@ -55,15 +53,14 @@ class InfluxDBInterface:
             self.logger.error('EXCEPTION: %s' % str(e))
             return 0
 
-    def get_dataset(self, end_dt):
-
+    def get_dataset(self, signal, end_dt):
         start_str_dt = datetime.datetime.strftime(end_dt-datetime.timedelta(minutes=15), DT_FRMT)
         end_str_dt = datetime.datetime.strftime(end_dt, DT_FRMT)
-        return self.get_single_value('PExp', start_str_dt, end_str_dt), \
-               self.get_single_value('PImp', start_str_dt, end_str_dt)
+        return self.get_single_value(signal, start_str_dt, end_str_dt)
 
-    @staticmethod
-    def get_dt(str_dt, tz_local, flag_set_minute=True):
+    def get_dt(self, str_dt, flag_set_minute=True):
+        tz_local = pytz.timezone(self.cfg['utils']['timeZone'])
+
         if str_dt == 'now':
             dt = datetime.datetime.now()
         elif str_dt == 'now_s00':
