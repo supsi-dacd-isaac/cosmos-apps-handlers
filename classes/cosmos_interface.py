@@ -48,10 +48,11 @@ class CosmosInterface:
         # Create a transaction without signature
         self.do_unsigned_transaction(cmd, params, 'unsignedTx.json')
 
-        # If power then send two messages in the same transaction(the former for the power data, the latter for the energy)
-        if params['signal'] == 'PImp':
+        # If setMeasure and signal = PImp|PExp then send two messages in the same transaction,
+        # the former for the power data, the latter for the energy
+        if cmd == 'setMeasure' and params['signal'] == 'PImp':
             self.add_msg_to_transactions(cmd, params, 'E_cons', 'unsignedTx.json')
-        elif params['signal'] == 'PExp':
+        elif cmd == 'setMeasure' and params['signal'] == 'PExp':
             self.add_msg_to_transactions(cmd, params, 'E_prod', 'unsignedTx.json')
 
         # Sign the transaction

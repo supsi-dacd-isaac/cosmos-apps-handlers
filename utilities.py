@@ -46,11 +46,12 @@ def scp_send(host, user, local_file, remote_file):
     os.system(scp_cmd)
 
 def exec_real_cmd(host, user, real_cmd, print_flag):
-    print('Remote command: %s' % real_cmd)
     if print_flag:
+        print('Remote command: %s' % real_cmd)
         print('Result:')
     res = send_cmd_over_ssh(host=host, user=user, command=real_cmd, print_flag=print_flag)
-    print('****')
+    if print_flag:
+        print('****')
     return res
 
 
