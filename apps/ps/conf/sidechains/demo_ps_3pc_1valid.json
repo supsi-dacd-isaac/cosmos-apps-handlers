@@ -1,0 +1,22 @@
+{
+  "tendermint": {
+    "app": "ps",
+    "chainName": "encom_chain",
+    "peerPort": 26656
+  },
+  "dataFolder": "/tmp/sidechains",
+  "referenceTOMLFile": "toml/config_reference.toml",
+  "nodes": {
+    "l5510": [0.0,  0.0, "10.8.0.55", "dstreppa", "/home/dstreppa/development/go", "hashed_mac", "1000000ectoken,100000000stake"],
+    "e5470": [4.0,  0.0, "10.8.0.11", "dstreppa", "/home/dstreppa/development/go", "hashed_mac", "1000000ectoken,100000000stake"],
+    "old": [2.0,  2.0, "10.8.0.40", "dstreppa", "/home/dstreppa/development/go", "hashed_mac", "1000000ectoken,100000000stake"]
+  },
+  "genesisFileGeneratorNode": "l5510",
+  "validators": ["l5510"],
+  "edges": [
+              ["l5510", "e5470"],
+              ["e5470", "old"],
+              ["old", "l5510"]
+  ],
+  "admin": "l5510"
+}
