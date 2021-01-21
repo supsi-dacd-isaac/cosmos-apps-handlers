@@ -8,6 +8,7 @@ import pytz
 import sys
 import os
 import time
+from datetime import datetime
 
 from influxdb import InfluxDBClient
 
@@ -37,8 +38,9 @@ if __name__ == "__main__":
     arg_parser = argparse.ArgumentParser()
     arg_parser.add_argument('-f', help='configuration file')
     arg_parser.add_argument('-c', help='command')
-    arg_parser.add_argument('-s', help='signal')
-    arg_parser.add_argument('-l', help='log file')
+    arg_parser.add_argument('-s', help='signal (optional)')
+    arg_parser.add_argument('-t', help='time (optional)')
+    arg_parser.add_argument('-l', help='log file (optional)')
 
     args = arg_parser.parse_args()
     cfg = json.loads(open(args.f).read())
@@ -101,6 +103,20 @@ if __name__ == "__main__":
 
         data = ci.do_query(cmd='getMeasure', params={"signal": 'E_cons', "timestamp": timestamp})
         logger.info(data)
+
+    elif args.c == 'get_measure':
+        # Do a query
+        signal = args.s
+        dt = datetime.strptime(args.t, '%Y-%m-%dT%H:%M:%SZ')
+        query_params = {
+                        "signal": signal,
+                        "timestamp": int(dt.timestamp())
+                       }
+        data = ci.do_query(cmd='getMeasure', params=query_params)
+        logger.info('MeterId: %s' % data['result']['meterId'])
+        logger.info('Account: %s' % data['result']['account'])
+        logger.info('Signal: %s; DT: %s; TS: %s; Value: %s' % (data['result']['signal'], args.t,
+                                                               data['result']['timestamp'], data['result']['value']))
 
     elif args.c == 'add_allowed_meters':
 
