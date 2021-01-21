@@ -163,5 +163,13 @@ if __name__ == "__main__":
         data = ci.do_query(cmd='getAdmin', params={})
         logger.info(data)
 
+    elif args.c == 'get_account_info':
+        logger.info(ci.get_account_info())
+
+    elif args.c == 'get_account_sequence_numbers':
+        an, sn = ci.get_account_sequence_numbers()
+        logger.info('Account number: %i' % an)
+        logger.info('Sequence number: %i' % sn)
+
     # starting program
     logger.info('Ending program')
