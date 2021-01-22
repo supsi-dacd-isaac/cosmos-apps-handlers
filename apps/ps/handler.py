@@ -4,8 +4,7 @@
 import argparse
 import json
 import logging
-import pytz
-import sys
+import subprocess
 import os
 import time
 from datetime import datetime
@@ -187,5 +186,18 @@ if __name__ == "__main__":
         logger.info('Account number: %i' % an)
         logger.info('Sequence number: %i' % sn)
 
-    # starting program
+    elif args.c == 'get_tokens_amount':
+        # pscli query account $(pscli keys show $NEW -a) | jq ".value.coins[0]"
+        data = ci.get_account_info()
+        remote_goroot = cfg['cosmos']['goPath']
+        cmd = '%s/bin/%s query account %s' % (remote_goroot, app_cli, data['address'])
+
+        # real_cmd = '%s/bin/%s keys show %s' % (remote_goroot, app_cli, u.get_real_account(host, user, account))
+        raw_data = subprocess.check_output(cmd, shell=True)
+        data = json.loads(raw_data)
+        logger.info('Tokens balance for of %s' % data['value']['address'])
+        for token in data['value']['coins']:
+            logger.info('BALANCE[%s] = %s' % (token['denom'], token['amount']))
+
+    # ending program
     logger.info('Ending program')
