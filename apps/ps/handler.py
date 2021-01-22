@@ -194,7 +194,7 @@ if __name__ == "__main__":
 
         # real_cmd = '%s/bin/%s keys show %s' % (remote_goroot, app_cli, u.get_real_account(host, user, account))
         raw_data = subprocess.check_output(cmd, shell=True)
-        data = json.loads(raw_data)
+        data = json.loads(raw_data.decode('utf-8'))
         logger.info('Tokens balance for of %s' % data['value']['address'])
         for token in data['value']['coins']:
             logger.info('BALANCE[%s] = %s' % (token['denom'], token['amount']))
