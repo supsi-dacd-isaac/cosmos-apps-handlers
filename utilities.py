@@ -10,27 +10,20 @@ import networkx as nx
 
 import subprocess
 import hashlib
-from pssh.clients import ParallelSSHClient
 
 import constants as c
 
 # Functions
 DT_FRMT = '%Y-%m-%dT%H:%M:%SZ'
 
+
 def send_cmd_over_ssh(host, user, command, print_flag):
-    client = ParallelSSHClient(hosts=[host], user=user)
-    try:
-        output = client.run_command(command=command, return_list=True)
-        result = []
-        for host_output in output:
-            for line in host_output.stdout:
-                if print_flag:
-                    print(line)
-                result.append(line)
-        return result
-    except Exception as e:
-        print('EXCEPTION: %s' % str(e))
-        return None
+    result = subprocess.check_output('ssh %s@%s %s' % (user, host, command), shell=True)
+    decoded_ret = result.decode('UTF-8')
+    if print_flag:
+        print(decoded_ret)
+    return decoded_ret.split('\n')
+
 
 def scp_get(node, host, user, remote_file, local_folder):
     scp_cmd = 'scp %s@%s:%s %s' % (user, host, remote_file, local_folder)
@@ -40,10 +33,12 @@ def scp_get(node, host, user, remote_file, local_folder):
     print('Rename %s/genesis.json to %s/%s.json' % (local_folder, local_folder, node))
     os.rename('%s/genesis.json' % local_folder, '%s/%s.json' % (local_folder, node))
 
+
 def scp_send(host, user, local_file, remote_file):
     scp_cmd = 'scp %s %s@%s:%s' % (local_file, user, host, remote_file)
     print(scp_cmd)
     os.system(scp_cmd)
+
 
 def exec_real_cmd(host, user, real_cmd, print_flag):
     if print_flag:
@@ -89,6 +84,7 @@ def get_eth_mac(host, user):
     res = ret[idx].replace('  ', ' ').replace(' ', ';').replace(';;', '').split(';')
     return res[1]
 
+
 def get_real_account(host, user, account):
     if account == 'hashed_mac':
         # Get the remote first MAC address
@@ -101,6 +97,7 @@ def get_real_account(host, user, account):
     else:
         real_account = account
     return real_account
+
 
 def init_chain(node, host, user, app, remote_goroot, cfg, account, tokens_string):
     app_cli = '%scli' % app[:-1]
@@ -131,6 +128,7 @@ def init_chain(node, host, user, app, remote_goroot, cfg, account, tokens_string
 
     exec_real_cmd(host, user, '%s/bin/%s validate-genesis' % (remote_goroot, app), False)
 
+
 def help_args():
     print('\n*** Input arguments\n')
     print('\t $ python handle_sidechain.py -f $F -n $N -c $C -p $P')
@@ -139,12 +137,14 @@ def help_args():
         print(' * %s' % help_arg)
         print()
 
+
 def help_commands():
     print('*** Available commands\n')
     for help_cmd in c.HELP_CMDS:
         print(' * %s: %s' % (help_cmd['cmd'], help_cmd['desc']))
         print('\tExample: %s' % help_cmd['example'])
         print()
+
 
 def exec_cmd(cfg, node, cmd, param):
     # Define main variables
@@ -289,15 +289,18 @@ def exec_cmd(cfg, node, cmd, param):
             exec_real_cmd(host, user, 'chmod 744 %s/bin/%s' % (remote_goroot, '%sd' % cfg['tendermint']['app']), False)
             exec_real_cmd(host, user, 'chmod 744 %s/bin/%s' % (remote_goroot, '%scli' % cfg['tendermint']['app']), False)
 
+
 def clear(cfg):
     if os.path.isfile('%s/from_sidechain/nodes_ids.txt' % cfg['dataFolder']):
         os.unlink('%s/from_sidechain/nodes_ids.txt' % cfg['dataFolder'])
+
 
 def check_cmd_availability(cmd):
     for available_cmd in c.HELP_CMDS:
         if available_cmd['cmd'] == cmd:
             return True
     return False
+
 
 def run_cmd(node, cmd, cfg, param):
     # Clear folder and files, which can eventually be used
@@ -319,6 +322,7 @@ def run_cmd(node, cmd, cfg, param):
         # exec the command
         exec_cmd(cfg, node, cmd, param)
 
+
 def check_data_folder(data_folder):
     if os.path.isdir(data_folder) is False:
         os.mkdir(data_folder)
@@ -326,6 +330,7 @@ def check_data_folder(data_folder):
         os.mkdir('%s/from_sidechain/genesis_files' % data_folder)
         os.mkdir('%s/to_sidechain/' % data_folder)
         os.mkdir('%s/to_sidechain/toml' % data_folder)
+
 
 def clean_folder(folder):
     print('Clean data folder %s' % folder)
@@ -335,6 +340,7 @@ def clean_folder(folder):
         for file in files:
             print('Delete %s/%s' % (root, file))
             os.unlink(os.path.join(root, file))
+
 
 def draw_sidechain(cfg):
     nodes_info = cfg['nodes']
@@ -387,6 +393,7 @@ def get_dt(str_dt, tz_local, flag_set_minute=True):
     else:
         return dt_utc
 
+
 def set_start_minute(dt_utc):
     if 0 <= dt_utc.minute < 15:
         return dt_utc.replace(minute=0, second=0, microsecond=0)
@@ -396,6 +403,7 @@ def set_start_minute(dt_utc):
         return dt_utc.replace(minute=30, second=0, microsecond=0)
     else:
         return dt_utc.replace(minute=45, second=0, microsecond=0)
+
 
 def set_end_minute(dt_utc):
     if 0 <= dt_utc.minute < 15:
@@ -407,6 +415,7 @@ def set_end_minute(dt_utc):
     else:
         return dt_utc.replace(minute=59, second=59, microsecond=0)
 
+
 def get_macs(family):
     macs = dict()
     for interface, snics in psutil.net_if_addrs().items():
@@ -414,6 +423,7 @@ def get_macs(family):
             if snic.family == family:
                 macs[interface] = snic.address
     return macs
+
 
 def check_configuration(cfg):
     ids = get_nodes_ids_from_file(cfg)
@@ -436,6 +446,7 @@ def check_configuration(cfg):
         print('RESULT: Configuration OK')
     else:
         print('RESULT: Found errors in conf file %s' % args.c)
+
 
 def create_setup(cfg):
 
@@ -485,6 +496,7 @@ def create_setup(cfg):
     with open(final_genesis_file, 'w') as outfile:
         json.dump(genesis_result, outfile, indent=4)
 
+
 def get_perspeers_string(node, nodes_conns):
     str_peers = ''
     if node in nodes_conns.keys():
@@ -493,6 +505,7 @@ def get_perspeers_string(node, nodes_conns):
         return str_peers[:-1]
     else:
         return str_peers
+
 
 def create_toml_files(nodes_conns, cfg):
     for k in cfg['nodes'].keys():
@@ -511,6 +524,7 @@ def create_toml_files(nodes_conns, cfg):
         fw.close()
         fr.close()
 
+
 def get_nodes_ids_from_file(cfg):
     f = open(os.path.expanduser('%s/from_sidechain/nodes_ids.txt' % cfg['dataFolder']), 'r')
     ids = dict()
@@ -518,6 +532,7 @@ def get_nodes_ids_from_file(cfg):
         (node, data) = id_line.split('=')
         ids[node] = data[:-1]
     return ids
+
 
 def create_nodes_file(cfg):
     of = '/tmp/nodes.txt'
