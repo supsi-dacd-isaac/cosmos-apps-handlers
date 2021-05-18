@@ -1,0 +1,26 @@
+{
+  "tendermint": {
+    "app": "ps",
+    "chainName": "encom_chain",
+    "peerPort": 26656
+  },
+  "dataFolder": "/tmp/sidechains",
+  "referenceTOMLFile": "toml/config_reference.toml",
+  "nodes": {
+    "39189345": [0.0,  0.0, "lic-39189345.dyndns.org", "pi", "/home/pi/run/go", "hashed_mac", "1000000000ectoken,100000000stake"],
+    "39189346": [4.0,  0.0, "lic-39189346.dyndns.org", "pi", "/home/pi/run/go", "hashed_mac", "1000000000ectoken,100000000stake"],
+    "39189348": [4.0,  4.0, "lic-39189348.dyndns.org", "pi", "/home/pi/run/go", "hashed_mac", "1000000000ectoken,100000000stake"],
+    "39189349": [2.0,  4.0, "lic-39189349.dyndns.org", "pi", "/home/pi/run/go", "hashed_mac", "1000000000ectoken,100000000stake"],
+    "39189350": [0.0,  4.0, "lic-39189350.dyndns.org", "pi", "/home/pi/run/go", "hashed_mac", "1000000000ectoken,100000000stake"]
+  },
+  "genesisFileGeneratorNode": "39189345",
+  "validators": ["39189345", "39189346"],
+  "edges": [
+              ["39189345", "39189346"],
+              ["39189346", "39189348"],
+              ["39189348", "39189349"],
+              ["39189349", "39189350"],
+              ["39189350", "39189345"]
+  ],
+  "admin": "39189345"
+}
