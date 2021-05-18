@@ -41,8 +41,8 @@ if __name__ == "__main__":
 
             # Create a new sidechain
             elif cmd == 'create_new_sidechain':
-                u.run_cmd('all', 'stop', cfg, param)
-                u.run_cmd('all', 'stop_rest_api', cfg, param)
+                # u.run_cmd('all', 'stop', cfg, param)
+                # u.run_cmd('all', 'stop_rest_api', cfg, param)
                 u.run_cmd('all', 'delete', cfg, param)
                 u.run_cmd('all', 'init', cfg, param)
 

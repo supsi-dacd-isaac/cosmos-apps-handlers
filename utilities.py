@@ -41,14 +41,17 @@ def scp_send(host, user, local_file, remote_file):
 
 
 def exec_real_cmd(host, user, real_cmd, print_flag):
-    if print_flag:
-        print('Remote command: %s' % real_cmd)
-        print('Result:')
-    res = send_cmd_over_ssh(host=host, user=user, command=real_cmd, print_flag=print_flag)
-    if print_flag:
-        print('****')
-    return res
-
+    try:
+        if print_flag:
+            print('Remote command: %s' % real_cmd)
+            print('Result:')
+        res = send_cmd_over_ssh(host=host, user=user, command=real_cmd, print_flag=print_flag)
+        if print_flag:
+            print('****')
+        return res
+    except Exception as e:
+        print('EXCEPTION: %s' % str(e))
+        return None
 
 # Get the first MAC address
 def get_eth_mac(host, user):
