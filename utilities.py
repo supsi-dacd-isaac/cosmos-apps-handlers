@@ -53,6 +53,7 @@ def exec_real_cmd(host, user, real_cmd, print_flag):
         print('EXCEPTION: %s' % str(e))
         return None
 
+
 # Get the first MAC address
 def get_eth_mac(host, user):
     # I apologize for the following code, if you try something better please send a PR
@@ -545,6 +546,28 @@ def create_nodes_file(cfg):
     fw.close()
     print('File %s created' % of)
 
+
+def add_meter(node, cfg, app_cli):
+    host = cfg['nodes'][node][2]
+    user = cfg['nodes'][node][3]
+    remote_goroot = cfg['nodes'][node][4]
+    account = cfg['nodes'][node][5]
+
+    real_cmd = '%s/bin/%s keys show %s' % (remote_goroot, app_cli, get_real_account(host, user, account))
+    key_str = exec_real_cmd(host, user, real_cmd, False)
+
+    # Build the dataset
+    res = ''
+    for elem in key_str:
+        res = '%s%s' % (res, elem)
+    data_key = json.loads(res)
+
+    # Do the transaction
+    transaction_params = {
+        "meter": data_key["name"],
+        "account": data_key["address"]
+    }
+    return transaction_params
 
 # Main
 if __name__ == "__main__":
