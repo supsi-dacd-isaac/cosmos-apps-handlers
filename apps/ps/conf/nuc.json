@@ -1,0 +1,21 @@
+{
+  "connectionsFile": "conf/conns.json",
+  "sidechainFile": "conf/sidechains/lic_ps_19strato_1nuc_4valid.json",
+  "cosmos": {
+    "protocol": "http",
+    "host": "localhost",
+    "port": 1317,
+    "chainName": "encom_chain",
+    "folderSignatureFiles": "/tmp",
+    "goPath": "/home/lic/run/go"
+  },
+  "utils": {
+    "timeZone": "Europe/Zurich"
+  },
+  "defaultMarketParameters":{
+    "prodConvFactor": "1",
+    "consConvFactor": "2",
+    "maxConsumption": "100",
+    "penalty": "20"
+  }
+}
