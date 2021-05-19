@@ -38,6 +38,7 @@ if __name__ == "__main__":
     arg_parser.add_argument('-f', help='configuration file')
     arg_parser.add_argument('-c', help='command')
     arg_parser.add_argument('-s', help='signal (optional)')
+    arg_parser.add_argument('-v', help='value (optional)')
     arg_parser.add_argument('-n', help='node (optional)')
     arg_parser.add_argument('-t', help='time (optional)')
     arg_parser.add_argument('-l', help='log file (optional)')
@@ -76,7 +77,11 @@ if __name__ == "__main__":
 
         influxdb_interface = InfluxDBInterface(cfg=cfg, logger=logger)
         end_dt_utc = influxdb_interface.get_dt('now_s00', flag_set_minute=False)
-        value = influxdb_interface.get_dataset(signal, end_dt_utc)
+
+        if not args.v:
+            value = influxdb_interface.get_dataset(signal, end_dt_utc)
+        else:
+            value = float(args.v)
 
         timestamp = '%s' % int(end_dt_utc.timestamp())
 
@@ -113,10 +118,15 @@ if __name__ == "__main__":
                         "timestamp": int(dt.timestamp())
                        }
         data = ci.do_query(cmd='getMeasure', params=query_params)
-        logger.info('MeterId: %s' % data['result']['meterId'])
-        logger.info('Account: %s' % data['result']['account'])
-        logger.info('Signal: %s; DT: %s; TS: %s; Value: %s' % (data['result']['signal'], args.t,
-                                                               data['result']['timestamp'], data['result']['value']))
+        if len(data['result']['meterId']) > 0 and len(data['result']['account']) > 0:
+            logger.info('MeterId: %s' % data['result']['meterId'])
+            logger.info('Account: %s' % data['result']['account'])
+            logger.info('Signal: %s; DT: %s; TS: %s; Value: %s' % (signal, args.t,
+                                                                   data['result']['timestamp'],
+                                                                   data['result']['value']))
+        else:
+            logger.info('Signal: %s; DT: %s; TS: N/A; Value: N/A' % (signal, args.t))
+
 
     elif args.c == 'add_allowed_meter':
         transaction_params = u.add_meter(args.n, cfg, app_cli)
