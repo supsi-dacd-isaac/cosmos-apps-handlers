@@ -1,6 +1,6 @@
 {
   "connectionsFile": "conf/conns.json",
-  "sidechainFile": "conf/sidechains/lic_ps_4strato_1valid.json",
+  "sidechainFile": "conf/sidechains/lic_ps_2strato_1nuc_1valid.json",
   "cosmos": {
     "protocol": "http",
     "host": "localhost",
