@@ -38,6 +38,7 @@ if __name__ == "__main__":
     arg_parser.add_argument('-f', help='configuration file')
     arg_parser.add_argument('-c', help='command')
     arg_parser.add_argument('-s', help='signal (optional)')
+    arg_parser.add_argument('-n', help='node (optional)')
     arg_parser.add_argument('-t', help='time (optional)')
     arg_parser.add_argument('-l', help='log file (optional)')
 
@@ -117,31 +118,16 @@ if __name__ == "__main__":
         logger.info('Signal: %s; DT: %s; TS: %s; Value: %s' % (data['result']['signal'], args.t,
                                                                data['result']['timestamp'], data['result']['value']))
 
+    elif args.c == 'add_allowed_meter':
+        transaction_params = u.add_meter(args.n, cfg, app_cli)
+        ci.do_transaction(cmd='meterAccount', params=transaction_params)
+        time.sleep(6)
+
     elif args.c == 'add_allowed_meters':
 
         for node in cfg["nodes"].keys():
-            host = cfg['nodes'][node][2]
-            user = cfg['nodes'][node][3]
-            remote_goroot = cfg['nodes'][node][4]
-            account = cfg['nodes'][node][5]
-
-            real_cmd = '%s/bin/%s keys show %s' % (remote_goroot, app_cli, u.get_real_account(host, user, account))
-            key_str = u.exec_real_cmd(host, user, real_cmd, False)
-
-            # Build the dataset
-            res = ''
-            for elem in key_str:
-                res = '%s%s' % (res, elem)
-            data_key = json.loads(res)
-
-            # Do the transaction
-            transaction_params = {
-                "meter": data_key["name"],
-                "account": data_key["address"]
-            }
+            transaction_params = u.add_meter(node, cfg, app_cli)
             ci.do_transaction(cmd='meterAccount', params=transaction_params)
-
-            # Wait enough time
             time.sleep(6)
 
     elif args.c == 'set_market_parameters':

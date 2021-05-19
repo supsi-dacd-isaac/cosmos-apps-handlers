@@ -6,10 +6,11 @@
   },
   "dataFolder": "/tmp/sidechains",
   "referenceTOMLFile": "toml/config_reference.toml",
+  "admin": "l5510",
   "nodes": {
-    "new": [0.0,  0.0, "10.8.0.11", "dstreppa", "/home/dstreppa/development/go", "hashed_mac", "1000000ectoken,100000000stake"]
+    "l5510": [0.0,  0.0, "10.8.0.55", "dstreppa", "/home/dstreppa/development/go", "hashed_mac", "1000000ectoken,100000000stake"]
   },
-  "genesisFileGeneratorNode": "new",
-  "validators": ["new"],
+  "genesisFileGeneratorNode": "l5510",
+  "validators": ["l5510"],
   "edges": []
 }
