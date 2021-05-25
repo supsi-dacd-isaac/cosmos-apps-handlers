@@ -4,12 +4,8 @@
 import argparse
 import json
 import logging
-import subprocess
-import os
 import time
 from datetime import datetime
-
-from influxdb import InfluxDBClient
 
 from classes.cosmos_interface import CosmosInterface
 from classes.influxdb_interface import InfluxDBInterface
@@ -183,17 +179,7 @@ if __name__ == "__main__":
         logger.info('Sequence number: %i' % sn)
 
     elif args.c == 'get_tokens_amount':
-        # pscli query account $(pscli keys show $NEW -a) | jq ".value.coins[0]"
-        data = ci.get_account_info()
-        remote_goroot = cfg['cosmos']['goPath']
-        cmd = '%s/bin/%s query account %s' % (remote_goroot, app_cli, data['address'])
-
-        # real_cmd = '%s/bin/%s keys show %s' % (remote_goroot, app_cli, u.get_real_account(host, user, account))
-        raw_data = subprocess.check_output(cmd, shell=True)
-        data = json.loads(raw_data.decode('utf-8'))
-        logger.info('Tokens balance for of %s' % data['value']['address'])
-        for token in data['value']['coins']:
-            logger.info('BALANCE[%s] = %s' % (token['denom'], token['amount']))
+        u.get_tokens_amount(ci, cfg, app_cli, logger)
 
     # ending program
     logger.info('Ending program')

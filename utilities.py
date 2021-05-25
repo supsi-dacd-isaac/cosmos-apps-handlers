@@ -569,6 +569,22 @@ def add_meter(node, cfg, app_cli):
     }
     return transaction_params
 
+
+def get_tokens_amount(ci, cfg, app_cli, logger):
+    # pscli query account $(pscli keys show $NEW -a) | jq ".value.coins[0]"
+    data = ci.get_account_info()
+    remote_goroot = cfg['cosmos']['goPath']
+    cmd = '%s/bin/%s query account %s' % (remote_goroot, app_cli, data['address'])
+
+    # real_cmd = '%s/bin/%s keys show %s' % (remote_goroot, app_cli, u.get_real_account(host, user, account))
+    raw_data = subprocess.check_output(cmd, shell=True)
+    data = json.loads(raw_data.decode('utf-8'))
+    logger.info('Tokens balance for of %s' % data['value']['address'])
+    for token in data['value']['coins']:
+        logger.info('BALANCE[%s] = %s' % (token['denom'], token['amount']))
+    return data
+
+
 # Main
 if __name__ == "__main__":
     # Input args

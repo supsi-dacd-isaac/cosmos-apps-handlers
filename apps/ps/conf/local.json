@@ -10,7 +10,8 @@
     "goPath": "/home/dstreppa/development/go"
   },
   "utils": {
-    "timeZone": "Europe/Zurich"
+    "timeZone": "Europe/Zurich",
+    "minutesGrouping": 1
   },
   "defaultMarketParameters":{
     "prodConvFactor": "1",
