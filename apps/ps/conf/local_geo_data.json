@@ -1,0 +1,22 @@
+{
+  "connectionsFile": "conf/conns_geo_data.json",
+  "sidechainFile": "conf/sidechains/demo_ps_1pc_1valid.json",
+  "cosmos": {
+    "protocol": "http",
+    "host": "localhost",
+    "port": 1317,
+    "chainName": "encom_chain",
+    "folderSignatureFiles": "/tmp",
+    "goPath": "/home/dstreppa/development/go"
+  },
+  "utils": {
+    "timeZone": "Europe/Zurich",
+    "minutesGrouping": 1
+  },
+  "defaultMarketParameters":{
+    "prodConvFactor": "1",
+    "consConvFactor": "2",
+    "maxConsumption": "100",
+    "penalty": "20"
+  }
+}
