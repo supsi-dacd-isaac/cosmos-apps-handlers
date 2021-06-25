@@ -170,6 +170,10 @@ if __name__ == "__main__":
         data = ci.do_query(cmd='getAdmin', params={})
         logger.info(data)
 
+    elif args.c == 'meters_list':
+        data = ci.do_query(cmd='metersList', params={})
+        logger.info(data)
+
     elif args.c == 'get_account_info':
         logger.info(ci.get_account_info())
 
