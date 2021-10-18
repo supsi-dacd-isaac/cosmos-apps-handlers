@@ -55,44 +55,28 @@ def exec_real_cmd(host, user, real_cmd, print_flag):
 
 
 # Get the first MAC address
-def get_eth_mac(host, user):
+def get_eth_mac(host, user, eth_interface):
     # I apologize for the following code, if you try something better please send a PR
-
     # Run the remote command
     if user == 'pi':
-        ret = exec_real_cmd(host, user, 'sudo ifconfig', False)
+        ret = exec_real_cmd(host, user, 'sudo ifconfig %s' % eth_interface, False)
     else:
-        ret = exec_real_cmd(host, user, 'ifconfig', False)
+        ret = exec_real_cmd(host, user, 'ifconfig %s' % eth_interface, False)
 
-    # The classical way (ETH0)
-    idx_eth0 = -1
     for idx in range(0, len(ret)):
-        if 'eth0' in ret[idx]:
-            idx_eth0 = idx
-
-    if idx_eth0 != -1:
-        for idx in range(idx_eth0, len(ret)):
-            if 'ether' in ret[idx]:
-                break
-    else:
-        # it works on Ubuntu>=18.04
-        idx_dev_int = -1
-        for idx in range(0, len(ret)):
-            if 'device' in ret[idx] and 'interrupt' in ret[idx]:
-                idx_dev_int = idx
-
-        for idx in range(idx_dev_int, 0, -1):
-            if 'ether' in ret[idx]:
-                break
-
-    res = ret[idx].replace('  ', ' ').replace(' ', ';').replace(';;', '').split(';')
+        if 'Ethernet' in ret[idx]:
+            res = ret[idx].replace('  ', ' ').replace(' ', ';').replace(';;', '').split(';')
+            break
     return res[1]
 
 
 def get_real_account(host, user, account):
-    if account == 'hashed_mac':
-        # Get the remote first MAC address
-        eth_mac = get_eth_mac(host, user)
+    if 'hashed_mac' in account:
+        tmp = account.split(';')
+        if len(tmp) == 2:
+            eth_mac = get_eth_mac(host, user, tmp[1])
+        else:
+            eth_mac = get_eth_mac(host, user, 'eth0')
 
         # Encode the MAC address
         h = hashlib.new('sha512')
@@ -372,12 +356,13 @@ def draw_sidechain(cfg):
     G.add_nodes_from(nodes)
     G.add_edges_from(edges)
     nx.draw_networkx(G, with_labels=True, pos=nodes_pos, node_color='#FFFFFF', edge_color='#FFFFFF',
-                     font_weight='normal', font_size=16, font_color='#000000')
-    nx.draw_networkx_nodes(G, nodes_pos, nodelist=nodes, node_color='#628CBD', node_size=300, alpha=0.8)
-    nx.draw_networkx_nodes(G, validators_pos, nodelist=list(validators_pos.keys()), node_color='#FF8000', node_size=300, alpha=0.8)
-    nx.draw_networkx_edges(G, nodes_pos, edgelist=edges_without_validators, width=2, alpha=0.8, edge_color='#228B22')
-    nx.draw_networkx_edges(G, nodes_pos, edgelist=edges_with_validators, width=2, alpha=0.8, edge_color='#FF4000')
+                     font_weight='bold', font_size=24, font_color='#000000')
+    nx.draw_networkx_nodes(G, nodes_pos, nodelist=nodes, node_color='#628CBD', node_size=600, alpha=1.0)
+    nx.draw_networkx_nodes(G, validators_pos, nodelist=list(validators_pos.keys()), node_color='#FF8000', node_size=600, alpha=1.0)
+    nx.draw_networkx_edges(G, nodes_pos, edgelist=edges_without_validators, width=4, alpha=1.0, edge_color='#228B22')
+    nx.draw_networkx_edges(G, nodes_pos, edgelist=edges_with_validators, width=4, alpha=1.0, edge_color='#FF4000')
     plt.show()
+    # plt.savefig('chain.pdf')
 
 
 def get_dt(str_dt, tz_local, flag_set_minute=True):
@@ -570,7 +555,7 @@ def add_meter(node, cfg, app_cli):
     return transaction_params
 
 
-def get_tokens_amount(ci, cfg, app_cli, logger):
+def     get_tokens_amount(ci, cfg, app_cli, logger):
     # pscli query account $(pscli keys show $NEW -a) | jq ".value.coins[0]"
     data = ci.get_account_info()
     remote_goroot = cfg['cosmos']['goPath']
