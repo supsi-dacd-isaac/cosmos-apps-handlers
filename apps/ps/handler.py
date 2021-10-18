@@ -123,6 +123,25 @@ if __name__ == "__main__":
         else:
             logger.info('Signal: %s; DT: %s; TS: N/A; Value: N/A' % (signal, args.t))
 
+    elif args.c == 'get_total':
+        # Do a query
+        signal = args.s
+        dt = datetime.strptime(args.t, '%Y-%m-%dT%H:%M:%SZ')
+        query_params = {
+                        "signal": signal,
+                        "timestamp": int(dt.timestamp())
+                       }
+        data = ci.do_query(cmd='getTotal', params=query_params)
+        print(data)
+        if len(data['result']['meterId']) > 0 and len(data['result']['account']) > 0:
+            logger.info('MeterId: %s' % data['result']['meterId'])
+            logger.info('Account: %s' % data['result']['account'])
+            logger.info('Signal: %s; DT: %s; TS: %s; Value: %s' % (signal, args.t,
+                                                                   data['result']['timestamp'],
+                                                                   data['result']['value']))
+        else:
+            logger.info('Signal: %s; DT: %s; TS: N/A; Value: N/A' % (signal, args.t))
+
 
     elif args.c == 'add_allowed_meter':
         transaction_params = u.add_meter(args.n, cfg, app_cli)
