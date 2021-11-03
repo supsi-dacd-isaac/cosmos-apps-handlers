@@ -2,6 +2,7 @@ import pytz
 import argparse
 import os
 import json
+import toml
 import datetime
 import psutil
 from datetime import datetime
@@ -25,14 +26,10 @@ def send_cmd_over_ssh(host, user, command, print_flag):
     return decoded_ret.split('\n')
 
 
-def scp_get(node, host, user, remote_file, local_folder):
-    scp_cmd = 'scp %s@%s:%s %s' % (user, host, remote_file, local_folder)
+def scp_get(host, user, remote_file, local_folder):
+    scp_cmd = 'scp %s@%s:%s %s%s%s' % (user, host, remote_file, local_folder, os.sep, remote_file.split(os.sep)[-1])
     print(scp_cmd)
     os.system(scp_cmd)
-
-    print('Rename %s/genesis.json to %s/%s.json' % (local_folder, local_folder, node))
-    os.rename('%s/genesis.json' % local_folder, '%s/%s.json' % (local_folder, node))
-
 
 def scp_send(host, user, local_file, remote_file):
     scp_cmd = 'scp %s %s@%s:%s' % (local_file, user, host, remote_file)
@@ -87,31 +84,27 @@ def get_real_account(host, user, account):
     return real_account
 
 
-def init_chain(node, host, user, app, remote_goroot, cfg, account, tokens_string):
-    app_cli = '%scli' % app[:-1]
+def init_chain(node, host, user, remote_goroot, cfg, account, tokens_string, tokens_to_stake):
     chain_name = cfg['tendermint']['chainName']
+    app = '%sd' % cfg['tendermint']['app']
 
     # Setup the main configuration
-    exec_real_cmd(host, user, '%s/bin/%s init %s --chain-id=%s' % (remote_goroot, app, node, chain_name), False)
-    exec_real_cmd(host, user, '%s/bin/%s config output json' % (remote_goroot, app_cli), False)
-    exec_real_cmd(host, user, '%s/bin/%s config indent true' % (remote_goroot, app_cli), False)
-    exec_real_cmd(host, user, '%s/bin/%s config trust-node true' % (remote_goroot, app_cli), False)
-    exec_real_cmd(host, user, '%s/bin/%s config chain-id %s' % (remote_goroot, app_cli, chain_name), False)
-    exec_real_cmd(host, user, '%s/bin/%s config keyring-backend test' % (remote_goroot, app_cli), False)
+    exec_real_cmd(host, user, '%s/bin/%s init %s --chain-id %s' % (remote_goroot, app, node, chain_name), False)
+    exec_real_cmd(host, user, '%s/bin/%s config chain-id %s' % (remote_goroot, app, chain_name), False)
+    exec_real_cmd(host, user, '%s/bin/%s config keyring-backend test' % (remote_goroot, app), False)
 
     # Get the real account
     real_account = get_real_account(host, user, account)
 
     # Setup the part related to the node key and address
-    exec_real_cmd(host, user, '%s/bin/%s keys delete %s' % (remote_goroot, app_cli, real_account), False)
-    exec_real_cmd(host, user, '%s/bin/%s keys add %s' % (remote_goroot, app_cli, real_account), False)
+    exec_real_cmd(host, user, '%s/bin/%s keys add %s' % (remote_goroot, app, real_account), False)
 
-    address = exec_real_cmd(host, user, '%s/bin/%s keys show %s -a' % (remote_goroot, app_cli, real_account), True)
+    address = exec_real_cmd(host, user, '%s/bin/%s keys show %s -a' % (remote_goroot, app, real_account), True)
 
     exec_real_cmd(host, user, '%s/bin/%s add-genesis-account %s %s' % (remote_goroot, app, address[0], tokens_string), False)
 
     if node in cfg['validators']:
-        exec_real_cmd(host, user, '%s/bin/%s gentx --name %s --keyring-backend test' % (remote_goroot, app, real_account), False)
+        exec_real_cmd(host, user, '%s/bin/%s gentx %s %s --chain-id %s' % (remote_goroot, app, real_account, tokens_to_stake, chain_name), False)
         exec_real_cmd(host, user, '%s/bin/%s collect-gentxs' % (remote_goroot, app), False)
 
     exec_real_cmd(host, user, '%s/bin/%s validate-genesis' % (remote_goroot, app), False)
@@ -136,13 +129,12 @@ def help_commands():
 
 def exec_cmd(cfg, node, cmd, param):
     # Define main variables
-    app = '%sd' % cfg['tendermint']['app']
-    app_cli = '%scli' % cfg['tendermint']['app']
     host = cfg['nodes'][node][2]
     user = cfg['nodes'][node][3]
     remote_goroot = cfg['nodes'][node][4]
     account = cfg['nodes'][node][5]
     tokens_string = cfg['nodes'][node][6]
+    tokens_to_stake = cfg['nodes'][node][7]
 
     # Get the node status
     print('**** NODE: %s@%s; COMMAND: \'%s\'' % (user, host, cmd))
@@ -150,36 +142,28 @@ def exec_cmd(cfg, node, cmd, param):
     # Start the node
     if cmd == 'start':
         # ATTENTION: After a restart you have to wait the first empty block before performing transactions
-        real_cmd = 'nohup %s/bin/%s start >> /home/%s/log/%s.log &' % (remote_goroot, app, user, app)
+        real_cmd = 'nohup %s/bin/%sd start --log_format json >> /home/%s/log/%s.log 2>&1 &' % (remote_goroot, cfg['tendermint']['app'], user, cfg['tendermint']['app'])
         print('Remote command: %s' % real_cmd)
         # This command does not work with ParallelSSHClient class
         subprocess.Popen(['ssh', '%s@%s' % (user, host), real_cmd], shell=False,
                          stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
-        print('****')
-    # Start the node REST API
-    elif cmd == 'start_rest_api':
-        real_cmd = 'nohup %s/bin/%s rest-server --chain-id %s --trust-node >> /home/%s/log/%s_rest.log &' % (remote_goroot,
-                                                                                                             app_cli,
-                                                                                                             cfg['tendermint']['chainName'],
-                                                                                                             user,
-                                                                                                             app_cli)
-        print('Remote command: %s' % real_cmd)
-        # This command does not work with ParallelSSHClient class
-        subprocess.Popen(['ssh', '%s@%s' % (user, host), real_cmd], shell=False,
-                         stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         print('****')
     else:
         # Apply the setup on the sideschain
         if cmd == 'apply_setup':
-            # Send the configuration TOML file
-            local_file = '%s/to_sidechain/toml/%s.toml' % (cfg['dataFolder'], node)
-            remote_file = '/home/%s/.%s/config/config.toml' % (user, app)
+            # Send the configuration TOML files
+            local_file = '%s/to_sidechain/toml_config/%s.toml' % (cfg['dataFolder'], node)
+            remote_file = '/home/%s/.%s/config/config.toml' % (user, cfg['tendermint']['app'])
+            scp_send(host, user, local_file, remote_file)
+
+            local_file = '%s/to_sidechain/toml_app/%s.toml' % (cfg['dataFolder'], node)
+            remote_file = '/home/%s/.%s/config/app.toml' % (user, cfg['tendermint']['app'])
             scp_send(host, user, local_file, remote_file)
 
             # Send the genesis file
             local_file = '%s/to_sidechain/%s.json' % (cfg['dataFolder'], cfg['genesisFileGeneratorNode'])
-            remote_file = '/home/%s/.%s/config/genesis.json' % (user, app)
+            remote_file = '/home/%s/.%s/config/genesis.json' % (user, cfg['tendermint']['app'])
             scp_send(host, user, local_file, remote_file)
 
         # Get the node disk occupancy
@@ -189,41 +173,48 @@ def exec_cmd(cfg, node, cmd, param):
 
         # Get the sidechain disk occupancy
         if cmd == 'check_sidechain_size':
-            real_cmd = 'du -sh /home/%s/.%s' % (user, app)
+            real_cmd = 'du -sh /home/%s/.%s' % (user, cfg['tendermint']['app'])
             exec_real_cmd(host, user, real_cmd, True)
 
         # Delete the sidechain
         if cmd == 'delete':
-            real_cmd = 'rm -rf /home/%s/.%s' % (user, app)
+            real_cmd = 'rm -rf /home/%s/.%s' % (user, cfg['tendermint']['app'])
             exec_real_cmd(host, user, real_cmd, False)
 
         # Get the genesis file
         if cmd == 'get_genesis_file':
-            scp_get(node, host, user, '/home/%s/.%s/config/genesis.json' % (user, app),
-                    '%s/from_sidechain/genesis_files' % cfg['dataFolder'])
+            local_folder = '%s/from_sidechain/genesis_files' % cfg['dataFolder']
+            scp_get(host, user, '/home/%s/.%s/config/genesis.json' % (user, cfg['tendermint']['app']), local_folder)
+
+            print('Rename %s/genesis.json to %s/%s.json' % (local_folder, local_folder, node))
+            os.rename('%s/genesis.json' % local_folder, '%s/%s.json' % (local_folder, node))
+
+        if cmd == 'get_toml_reference_file':
+            if node == cfg['tomlFilesReferenceNode']:
+                scp_get(host, user, '/home/%s/.%s/config/app.toml' % (user, cfg['tendermint']['app']),
+                        '%s/from_sidechain/toml_app' % cfg['dataFolder'])
+
+                scp_get(host, user, '/home/%s/.%s/config/config.toml' % (user, cfg['tendermint']['app']),
+                        '%s/from_sidechain/toml_config' % cfg['dataFolder'])
 
         # Get the node ID
         if cmd == 'get_node_id':
-            real_cmd = '%s/bin/%s tendermint show-node-id' % (remote_goroot, app)
+            real_cmd = '%s/bin/%sd tendermint show-node-id' % (remote_goroot, cfg['tendermint']['app'])
             exec_real_cmd(host, user, real_cmd, True)
 
         # Initialize the sidechain
         if cmd == 'init':
-            init_chain(node, host, user, app, remote_goroot, cfg, account, tokens_string)
+            init_chain(node, host, user, remote_goroot, cfg, account, tokens_string, tokens_to_stake)
 
         # Get the node log
         if cmd == 'log':
-            real_cmd = 'tail -%s /home/%s/log/%s.log' % (param, user, app)
+            real_cmd = 'tail -%s /home/%s/log/%s.log' % (param, user, cfg['tendermint']['app'])
             exec_real_cmd(host, user, real_cmd, True)
 
-        # Get the node REST API log
-        if cmd == 'log_rest_api':
-            real_cmd = 'tail -%s /home/%s/log/%s_rest.log' % (param, user, app_cli)
-            exec_real_cmd(host, user, real_cmd, True)
 
         # Get the node ID
         if cmd == 'save_node_id':
-            real_cmd = '%s/bin/%s tendermint show-node-id' % (remote_goroot, app)
+            real_cmd = '%s/bin/%sd tendermint show-node-id' % (remote_goroot, cfg['tendermint']['app'])
             node_id_info = exec_real_cmd(host, user, real_cmd, False)
 
             fw = open('%s/from_sidechain/nodes_ids.txt' % cfg['dataFolder'], 'a')
@@ -232,50 +223,25 @@ def exec_cmd(cfg, node, cmd, param):
 
         # Show account info
         if cmd == 'show_account_info':
-            real_cmd = '%s/bin/%s keys show %s -a' % (remote_goroot, app_cli, get_real_account(host, user, account))
+            real_cmd = '%s/bin/%sd keys show %s -a' % (remote_goroot, cfg['tendermint']['app'], get_real_account(host, user, account))
             account_address = exec_real_cmd(host, user, real_cmd, False)
-            real_cmd = '%s/bin/%s query account %s' % (remote_goroot, app_cli, account_address[0])
+            real_cmd = '%s/bin/%sd query account %s' % (remote_goroot, cfg['tendermint']['app'], account_address[0])
             exec_real_cmd(host, user, real_cmd, True)
 
         # Show key info
         if cmd == 'show_key_info':
-            real_cmd = '%s/bin/%s keys show %s' % (remote_goroot, app_cli, get_real_account(host, user, account))
+            real_cmd = '%s/bin/%sd keys show %s' % (remote_goroot, cfg['tendermint']['app'], get_real_account(host, user, account))
             exec_real_cmd(host, user, real_cmd, True)
 
         # Get the node status
         if cmd == 'status':
-            real_cmd = 'ps aux | grep -v grep | grep %s/bin/%s' % (remote_goroot, app)
-            exec_real_cmd(host, user, real_cmd, True)
-
-        # Get the node REST API status
-        if cmd == 'status_rest_api':
-            real_cmd = 'ps aux | grep -v grep | grep %s/bin/%s' % (remote_goroot, app_cli)
+            real_cmd = 'ps aux | grep -v grep | grep %s/bin/%s' % (remote_goroot, cfg['tendermint']['app'])
             exec_real_cmd(host, user, real_cmd, True)
 
         # Stop the node
         if cmd == 'stop':
-            real_cmd = 'killall %s' % app
+            real_cmd = 'killall %sd' % cfg['tendermint']['app']
             exec_real_cmd(host, user, real_cmd, False)
-
-        # Stop the node REST API
-        if cmd == 'stop_rest_api':
-            real_cmd = 'killall %s' % app_cli
-            exec_real_cmd(host, user, real_cmd, False)
-
-        if cmd == 'upload_app':
-            # Send the appd executable
-            local_file = '%s/bin/%s' % (os.environ['GOPATH'], '%sd' % cfg['tendermint']['app'])
-            remote_file = '%s/bin/%s' % (remote_goroot, '%sd' % cfg['tendermint']['app'])
-            scp_send(host, user, local_file, remote_file)
-
-            # Send the appcli executable
-            local_file = '%s/bin/%s' % (os.environ['GOPATH'], '%scli' % cfg['tendermint']['app'])
-            remote_file = '%s/bin/%s' % (remote_goroot, '%scli' % cfg['tendermint']['app'])
-            scp_send(host, user, local_file, remote_file)
-
-            # Set the remote permission
-            exec_real_cmd(host, user, 'chmod 744 %s/bin/%s' % (remote_goroot, '%sd' % cfg['tendermint']['app']), False)
-            exec_real_cmd(host, user, 'chmod 744 %s/bin/%s' % (remote_goroot, '%scli' % cfg['tendermint']['app']), False)
 
 
 def clear(cfg):
@@ -296,16 +262,10 @@ def run_cmd(node, cmd, cfg, param):
         clear(cfg)
 
     if node == 'all':
-        # Custom case of setup creation
-        if cmd == 'create_setup':
-            # Get the node status
-            print('**** COMMAND: \'%s\'' % cmd)
-            create_setup(cfg)
-        else:
-            # cycle over the nodes
-            for single_node in cfg['nodes'].keys():
-                # exec the command
-                exec_cmd(cfg, single_node, cmd, param)
+        # cycle over the nodes
+        for single_node in cfg['nodes'].keys():
+            # exec the command
+            exec_cmd(cfg, single_node, cmd, param)
     else:
         # exec the command
         exec_cmd(cfg, node, cmd, param)
@@ -316,8 +276,11 @@ def check_data_folder(data_folder):
         os.mkdir(data_folder)
         os.mkdir('%s/from_sidechain' % data_folder)
         os.mkdir('%s/from_sidechain/genesis_files' % data_folder)
+        os.mkdir('%s/from_sidechain/toml_app' % data_folder)
+        os.mkdir('%s/from_sidechain/toml_config' % data_folder)
         os.mkdir('%s/to_sidechain/' % data_folder)
-        os.mkdir('%s/to_sidechain/toml' % data_folder)
+        os.mkdir('%s/to_sidechain/toml_app' % data_folder)
+        os.mkdir('%s/to_sidechain/toml_config' % data_folder)
 
 
 def clean_folder(folder):
@@ -453,6 +416,7 @@ def create_setup(cfg):
                     except Exception as e:
                         print('ERROR! Probably wrong configuration')
 
+    # Get file from
     create_toml_files(nodes_conns, cfg)
 
     genesis_data = dict()
@@ -466,24 +430,27 @@ def create_setup(cfg):
             genesis_result = tmp_genesis_data
 
         # Get the configured validators
-        for validator in tmp_genesis_data['app_state']['genutil']['gentxs']:
+        for validator in tmp_genesis_data['app_state']['genutil']['gen_txs']:
             validators_data.append(validator)
 
-    # Append accounts of nodes that will not generate the genesis file
+    # Append accounts and balances of nodes that will not generate the genesis file
     for node in genesis_data.keys():
         for account in genesis_data[node]['app_state']['auth']['accounts']:
             genesis_result['app_state']['auth']['accounts'].append(account)
 
+        for balance in genesis_data[node]['app_state']['bank']['balances']:
+            genesis_result['app_state']['bank']['balances'].append(balance)
+
     # Append the validators
-    genesis_result['app_state']['genutil']['gentxs'] = []
+    genesis_result['app_state']['genutil']['gen_txs'] = []
     for validator in validators_data:
-        genesis_result['app_state']['genutil']['gentxs'].append(validator)
+        genesis_result['app_state']['genutil']['gen_txs'].append(validator)
 
     # Create the final genesis file
     final_genesis_file = '%s/to_sidechain/%s.json' % (cfg['dataFolder'], cfg['genesisFileGeneratorNode'])
     print('Create genesis file %s' % final_genesis_file)
     with open(final_genesis_file, 'w') as outfile:
-        json.dump(genesis_result, outfile, indent=4)
+        json.dump(genesis_result, outfile, indent=2)
 
 
 def get_perspeers_string(node, nodes_conns):
@@ -498,20 +465,23 @@ def get_perspeers_string(node, nodes_conns):
 
 def create_toml_files(nodes_conns, cfg):
     for k in cfg['nodes'].keys():
-        out_toml_file = '%s/to_sidechain/toml/%s.toml' % (cfg['dataFolder'], k)
-        str_peers = get_perspeers_string(k, nodes_conns)
-        fr = open(os.path.expanduser(cfg['referenceTOMLFile']), 'r')
-        fw = open(os.path.expanduser(out_toml_file), 'w')
-        print('Create TOML file %s' % out_toml_file)
-        for line in fr:
-            if 'persistent_peers =' in line:
-                fw.write('persistent_peers = "%s"\n' % str_peers)
-            elif 'moniker =' in line:
-                fw.write('moniker = "%s"\n' % k)
-            else:
-                fw.write(line)
-        fw.close()
-        fr.close()
+        # Config file
+        toml_config = toml.load('%s/from_sidechain/toml_config/config.toml' % cfg['dataFolder'])
+        toml_config['moniker'] = k
+        toml_config['p2p']['external_address'] = '%s:%i' % (cfg['nodes'][k][2], cfg['tendermint']['peerPort'])
+        toml_config['p2p']['persistent_peers'] = get_perspeers_string(k, nodes_conns)
+        file_path = '%s/to_sidechain/toml_config/%s.toml' % (cfg['dataFolder'], k)
+        with open(file_path, 'w') as f:
+            toml.dump(toml_config, f)
+
+        # App file
+        toml_app = toml.load('%s/from_sidechain/toml_app/app.toml' % cfg['dataFolder'])
+        toml_app['api']['enable'] = True
+        toml_app['api']['address'] = 'tcp://localhost:%i' % cfg['tendermint']['apiPort']
+        file_path = '%s/to_sidechain/toml_app/%s.toml' % (cfg['dataFolder'], k)
+        with open(file_path, 'w') as f:
+            toml.dump(toml_app, f)
+
 
 
 def get_nodes_ids_from_file(cfg):

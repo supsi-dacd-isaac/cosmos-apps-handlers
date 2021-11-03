@@ -1,5 +1,6 @@
 import argparse
 import json
+import time
 
 import utilities as u
 
@@ -41,20 +42,20 @@ if __name__ == "__main__":
 
             # Create a new sidechain
             elif cmd == 'create_new_sidechain':
-                # u.run_cmd('all', 'stop', cfg, param)
-                # u.run_cmd('all', 'stop_rest_api', cfg, param)
+                u.run_cmd('all', 'stop', cfg, param)
+
                 u.run_cmd('all', 'delete', cfg, param)
                 u.run_cmd('all', 'init', cfg, param)
 
                 u.run_cmd('all', 'save_node_id', cfg, param)
                 u.run_cmd('all', 'get_genesis_file', cfg, param)
-                u.run_cmd('all', 'create_setup', cfg, param)
+                u.run_cmd('all', 'get_toml_reference_file', cfg, param)
+                u.create_setup(cfg)
                 u.run_cmd('all', 'apply_setup', cfg, param)
 
                 u.run_cmd('all', 'start', cfg, param)
-                u.run_cmd('all', 'start_rest_api', cfg, param)
+                time.sleep(2)
                 u.run_cmd('all', 'status', cfg, param)
-                u.run_cmd('all', 'status_rest_api', cfg, param)
 
             elif cmd == 'clean_folders':
                 u.clean_folder(cfg['dataFolder'])

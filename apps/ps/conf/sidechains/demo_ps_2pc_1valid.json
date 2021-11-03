@@ -1,20 +1,21 @@
 {
   "tendermint": {
-    "app": "ps",
-    "chainName": "encom_chain",
-    "peerPort": 26656
+    "app": "tsdb",
+    "chainName": "tsdb",
+    "peerPort": 26656,
+    "apiPort": 1317
   },
   "dataFolder": "/tmp/sidechains",
   "referenceTOMLFile": "toml/config_reference.toml",
-  "admin": "l5510",
   "nodes": {
-    "l5510": [0.0,  0.0, "10.8.0.55", "dstreppa", "/home/dstreppa/development/go", "hashed_mac", "1000000ectoken,100000000stake"],
-    "e5470": [1.0,  1.0, "10.8.0.11", "dstreppa", "/home/dstreppa/development/go", "hashed_mac", "1000000ectoken,100000000stake"]
+    "l5510": [0.0,  0.0, "10.8.0.55", "dstreppa", "/home/dstreppa/development/go", "dstreppa", "1000000ectoken,100000000stake", "100000000stake"],
+    "bombolo": [1.0,  1.0, "10.8.0.6", "bombolo", "/home/bombolo/go", "bombolo", "1000000ectoken,100000000stake", "100000000stake"]
   },
   "genesisFileGeneratorNode": "l5510",
+  "tomlFilesReferenceNode": "l5510",
   "validators": ["l5510"],
   "edges": [
-              ["l5510", "e5470"],
-              ["e5470", "l5510"]
+              ["l5510", "bombolo"],
+              ["bombolo", "l5510"]
   ]
 }
